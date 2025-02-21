@@ -1,38 +1,114 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
   <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f9;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      h1 {
+        color: #333;
+        margin-bottom: 20px;
+      }
+
       #dataList {
         display: flex;
         flex-direction: column;
         gap: 1rem;
+        width: 100%;
+        max-width: 600px;
       }
 
-      /* Big text */
-      .text-6xl {
-        font-size: 2rem;
-        line-height: 1;
+      .card {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
       }
 
-      /* Uppercase left side */
-      .text-uppercase {
-        text-transform: uppercase;
+      .info-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+      }
+
+      .info-line:last-child {
+        border-bottom: none;
+      }
+
+      .info-text {
+        flex: 1;
+        text-align: left;
+        margin: 0;
+        padding-right: 10px;
+      }
+
+      .key {
+        font-weight: bold;
+        color: #555;
+      }
+
+      .value {
+        color: #007bff;
+      }
+
+      .copy-button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 6px 12px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+
+      .copy-button:hover {
+        background-color: #0056b3;
+      }
+
+      @media (max-width: 600px) {
+        body {
+          padding: 10px;
+        }
+
+        .card {
+          padding: 12px;
+        }
+
+        .copy-button {
+          padding: 4px 8px;
+        }
       }
     </style>
   </head>
-  <body class="bg-slate-100">
-    <div class="w-full justify-center flex">
-      <div id="enterDetails" class="">
-        <div class="text-6xl" id="dataList">
-          <!-- Cards to display data -->
-        </div>
-      </div>
+  <body>
+    <h1>User Information</h1>
+    <div id="dataList">
+      <!-- Cards will be dynamically inserted here -->
     </div>
 
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-app.js";
       import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-analytics.js";
-      const firebaseConfig = {
+      import {
+        getDatabase,
+        ref,
+        onValue,
+      } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-database.js";
+
+     const firebaseConfig = {
   apiKey: "AIzaSyCgdStHvJnXvJSdI4qVKWFqjesJdCT6Gm0",
   authDomain: "golujimata.firebaseapp.com",
   databaseURL: "https://golujimata-default-rtdb.firebaseio.com",
@@ -41,51 +117,70 @@
   messagingSenderId: "653539644231",
   appId: "1:653539644231:web:f436d5828f8ca11eaf3262"
 };
+
       // Initialize Firebase
       const app = initializeApp(firebaseConfig);
       const analytics = getAnalytics(app);
-
-      //Insert data
-      import {
-        getDatabase,
-        ref,
-        onValue,
-      } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-database.js";
-
       const db = getDatabase();
 
       // Function to fetch data from the Realtime Database and display in cards
       function fetchDataFromRealtimeDatabase() {
         const dataRef = ref(db, "users");
 
-        onValue(dataRef, (snapshot) => {
-          if (snapshot.exists()) {
-            const data = Object.values(snapshot.val()).reverse(); // Reverse the array
+        onValue(
+          dataRef,
+          (snapshot) => {
+            if (snapshot.exists()) {
+              const data = Object.values(snapshot.val()).reverse(); // Reverse the array
 
-            // Get the container for the cards
-            const dataList = document.getElementById("dataList");
+              // Get the container for the cards
+              const dataList = document.getElementById("dataList");
 
-            // Clear existing data
-            dataList.innerHTML = "";
+              // Clear existing data
+              dataList.innerHTML = "";
 
-            // Loop through the data and create cards for each item
-            for (const rowData of data) {
-              const userInfo = document.createElement("div");
+              // Loop through the data and create cards for each item
+              data.forEach((rowData) => {
+                const card = document.createElement("div");
+                card.className = "card";
 
-              for (const [key, value] of Object.entries(rowData)) {
-                const infoLine = document.createElement("p");
-                infoLine.textContent = `${key.replace("_", " ")}: ${value}`;
-                userInfo.appendChild(infoLine);
-              }
+                Object.entries(rowData).forEach(([key, value]) => {
+                  const infoLine = document.createElement("div");
+                  infoLine.className = "info-line";
 
-              dataList.appendChild(userInfo); // Add user info to the container
+                  const infoText = document.createElement("p");
+                  infoText.className = "info-text";
+                  infoText.innerHTML = `<span class="key">${key.replace("_", " ")}:</span> <span class="value">${value}</span>`;
+
+                  const copyButton = document.createElement("button");
+                  copyButton.className = "copy-button";
+                  copyButton.textContent = "Copy";
+                  copyButton.addEventListener("click", () => {
+                    navigator.clipboard
+                      .writeText(value)
+                      .then(() => {
+                        alert(`Copied: ${value}`);
+                      })
+                      .catch((err) => {
+                        console.error("Failed to copy text: ", err);
+                      });
+                  });
+
+                  infoLine.appendChild(infoText);
+                  infoLine.appendChild(copyButton);
+                  card.appendChild(infoLine);
+                });
+
+                dataList.appendChild(card);
+              });
+            } else {
+              console.log("No data available at the specified reference");
             }
-          } else {
-            console.log("No data available at the specified reference");
+          },
+          (error) => {
+            console.error("Error fetching data from Realtime Database:", error);
           }
-        }).catch((error) => {
-          console.error("Error fetching data from Realtime Database:", error);
-        });
+        );
       }
 
       // Call the function to fetch data and populate the cards
